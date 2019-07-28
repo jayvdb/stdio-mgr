@@ -76,12 +76,15 @@ class TeeStdin(TextIOWrapper):
     from io import SEEK_SET, SEEK_END
 
     tee = attr.ib(validator=attr.validators.instance_of(TextIOBase))
-    init_text = attr.ib(default="", validator=attr.validators.instance_of(str))
+    init_text = attr.ib(default="", validator=attr.validators.instance_of((str, bytes)))
     _encoding = attr.ib(default="utf-8", validator=attr.validators.instance_of(str))
 
     def __attrs_post_init__(self):
         """Call normal __init__ on superclass."""
-        self._buf = BytesIO(self.init_text.encode(self._encoding))
+        if isinstance(self.init_text, bytes):
+            self._buf = BytesIO(self.init_text)
+        else:
+            self._buf = BytesIO(self.init_text.encode(self._encoding))
         super().__init__(BufferedReader(self._buf), encoding=self._encoding)
 
     def read(self, size=None):  # pragma: no cover
