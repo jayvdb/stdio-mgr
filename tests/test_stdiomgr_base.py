@@ -175,6 +175,35 @@ def test_default_stdin(convert_newlines):
             input()
 
 
+def test_default_stdin_input_twice(convert_newlines):
+    """Confirm stdin default-populate."""
+    str1 = "This is a test string.\n"
+    str2 = "This is another test string.\n"
+
+    with stdio_mgr(str1 + str2) as (i, o, e):
+        assert str1 + str2 == i.getvalue()
+
+        out_str = input()
+
+        # 'input' strips the trailing newline before returning
+        assert convert_newlines(str1[:-1]) == out_str
+
+        # TeeStdin tees the stream contents, *including* the newline,
+        # to the managed stdout
+        assert convert_newlines(str1) == o.getvalue()
+
+        out_str = input()
+
+        # Each 'input' only returns one line
+        assert convert_newlines(str2[:-1]) == out_str
+
+        # TeeStdin tees the entire stream to the managed stdout
+        assert convert_newlines(str1 + str2) == o.getvalue()
+
+        with pytest.raises(EOFError):
+            input()
+
+
 def test_default_stdin_read_1():
     """Confirm stdin reading by single bytes."""
     in_str = "This is a test string."
@@ -191,11 +220,11 @@ def test_default_stdin_read_1():
 
             assert o.getvalue() == in_str[: offset + 1]
 
-        o.getvalue() == convert_newlines(in_str)
+        o.getvalue() == in_str
 
         assert i.read(1) == ""
 
-        o.getvalue() == convert_newlines(in_str)
+        o.getvalue() == in_str
 
 
 def test_capture_instance_stdin(convert_newlines):
