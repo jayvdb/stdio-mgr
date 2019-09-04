@@ -29,6 +29,7 @@ interactions.
 
 import warnings
 
+import pytest
 
 from stdio_mgr import stdio_mgr
 
@@ -71,6 +72,34 @@ def test_default_stdin():
 
         # 'input' strips the trailing newline before returning
         assert in_str[:-1] == out_str
+
+        with pytest.raises(EOFError):
+            input()
+
+
+def test_default_stdin_read_1():
+    """Confirm stdin reading by single bytes."""
+    in_str = "This is a test string.\n"
+    expected = in_str
+
+    with stdio_mgr(in_str) as (i, o, e):
+        assert in_str == i.getvalue()
+
+        # TeeStdin tees the stream contents to the managed stdout
+        # only as they are read, one byte at a time, including an added
+        # trailing newline.
+        for offset, char in enumerate(expected):
+            out_str = i.read(1)
+
+            assert out_str == char
+
+            assert o.getvalue() == expected[: offset + 1]
+
+        o.getvalue() == expected
+
+        assert i.read(1) is ''
+
+        o.getvalue() == expected
 
 
 def test_managed_stdin():
