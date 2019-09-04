@@ -54,6 +54,12 @@ def test_context_manager_instance():
     assert isinstance(cm, AbstractContextManager)
     assert not isinstance(cm, collections.abc.MutableSequence)
     assert all(isinstance(item, io.TextIOWrapper) for item in cm)
+    # The TextIOWrapper defaults are currently used and asserted here,
+    # though they are underlying implementation details not yet exposed
+    # in the API, and are subject to change.
+    assert all(not item.line_buffering for item in cm)
+    if sys.version_info >= (3, 7):
+        assert all(not item.write_through for item in cm)
 
     # Check copies are equal
     assert list(cm) == value_list
@@ -165,6 +171,9 @@ def test_default_stdin(convert_newlines):
         # 'input' strips the trailing newline before returning
         assert convert_newlines(in_str[:-1]) == out_str
 
+        with pytest.raises(EOFError):
+            input()
+
 
 def test_default_stdin_read_1():
     """Confirm stdin reading by single bytes."""
@@ -181,6 +190,12 @@ def test_default_stdin_read_1():
             assert out_str == char
 
             assert o.getvalue() == in_str[: offset + 1]
+
+        o.getvalue() == in_str
+
+        assert i.read(1) == ""
+
+        o.getvalue() == in_str
 
 
 def test_capture_instance_stdin(convert_newlines):
