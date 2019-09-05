@@ -41,6 +41,7 @@ import pytest
 
 from stdio_mgr import stdio_mgr, StdioManager
 from stdio_mgr.stdio_mgr import _Tee
+from stdio_mgr.types import _MultiCloseContextManager, StdioTuple, TextIOTuple
 
 _WARNING_ARGS_ERROR = "Please use pytest -p no:warnings or pytest --W error::Warning"
 
@@ -547,6 +548,24 @@ def test_tee_type():
         _Tee(tee="str", buffer=io.StringIO())
 
     assert str(err.value) == "tee must be a TextIOBase."
+
+
+def test_non_closing_type():
+    """Test that incorrect type doesnt raise exceptions."""
+    # Ensure the type used has no __exit__ or close()
+    assert not hasattr("", "__exit__")
+    assert not hasattr("", "close")
+
+    with StdioTuple(("", "", "")):
+        pass
+
+    with _MultiCloseContextManager(("", "", "")):
+        pass
+
+    with pytest.raises(AssertionError) as err:
+        TextIOTuple(("", "", ""))
+
+    assert str(err.value) == "iterable must contain only TextIOBase"
 
 
 @pytest.mark.xfail(reason="Want to ensure 'real' warnings aren't suppressed")
