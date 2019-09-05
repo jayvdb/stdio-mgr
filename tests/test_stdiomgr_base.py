@@ -542,6 +542,21 @@ def test_tee_type():
 
     assert str(err.value) == "tee must be a TextIOBase."
 
+    class DummyIO(io.TextIOBase):
+        pass
+
+    _Tee(tee=DummyIO(), buffer=io.StringIO())
+
+    with pytest.raises(ValueError) as err:
+        _Tee(tee=DummyIO(), buffer=io.StringIO())
+
+    assert str(err.value) == "tee must be a context manager."
+
+    class DummyContextIO(io.TextIOBase, AbstractContextManager):
+        pass
+
+    _Tee(tee=DummyContextIO(), buffer=io.StringIO())
+
 
 @pytest.mark.xfail(reason="Want to ensure 'real' warnings aren't suppressed")
 def test_bare_warning(skip_warnings):

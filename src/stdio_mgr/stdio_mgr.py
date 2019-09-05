@@ -125,6 +125,10 @@ class _Tee(TextIOWrapper):
         super().__init__(*args, **kwargs)
         if not isinstance(tee, TextIOBase):
             raise ValueError("tee must be a TextIOBase.")
+        if not isinstance(tee, AbstractContextManager):
+            raise ValueError("tee must be a context manager.")
+        if not hasattr(tee, "__exit__"):
+            raise ValueError("tee must be a context manager.")
         self.tee = tee
 
     def read(self, size=None):
