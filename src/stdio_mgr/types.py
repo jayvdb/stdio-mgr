@@ -143,7 +143,8 @@ class _MultiCloseContextManager(StdioTuple):
     def __enter__(self):
         """Enter context of all members."""
         with ExitStack() as stack:
-            all(map(stack.enter_context, self))
+            # If not all items are TextIOBase, they may not have __exit__
+            self.suppress_all(AttributeError, stack.enter_context)
 
             self._close_files = stack.pop_all().close
 
