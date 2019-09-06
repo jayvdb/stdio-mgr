@@ -37,7 +37,7 @@ from io import (
     TextIOWrapper,
 )
 
-from .types import _MultiCloseContextManager, ReplaceSysIoContextManager
+from .types import _OutStreamsCloseContextManager, InjectSysIoContextManager
 
 
 class _PersistedBytesIO(BytesIO):
@@ -266,7 +266,7 @@ class SafeCloseTeeStdin(_SafeCloseIOBase, TeeStdin):
     """
 
 
-class StdioManager(ReplaceSysIoContextManager, _MultiCloseContextManager):
+class StdioManager(InjectSysIoContextManager, _OutStreamsCloseContextManager):
     r"""Substitute temporary text buffers for `stdio` in a managed context.
 
     Context manager.
