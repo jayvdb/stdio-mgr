@@ -481,11 +481,6 @@ def test_stdout_detached(convert_newlines):
 
         assert convert_newlines("test str\n") == o.getvalue()
 
-        with pytest.raises(ValueError) as err:
-            print("anything")
-
-        assert str(err.value) == "underlying buffer has been detached"
-
         f.write(convert_newlines("second test str\n").encode("utf8"))
         f.flush()
 
@@ -529,7 +524,7 @@ def test_stdout_access_buffer_after_close(convert_newlines):
         with pytest.raises(ValueError) as err:
             print("anything")
 
-        assert str(err.value) == "I/O operation on closed file."
+        assert str(err.value) == "write to closed file"
 
         assert convert_newlines("test str\nsecond test str\n") == o.getvalue()
 

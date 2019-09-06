@@ -177,3 +177,44 @@ class ReplaceSysIoContextManager(StdioTuple):
         (sys.stdin, sys.stdout, sys.stderr) = self._prior_streams
 
         return super().__exit__(exc_type, exc_value, traceback)
+
+
+class _OutStreamsCloseContextManager(_MultiCloseContextManager):
+    """Close stdout and stderr only."""
+
+    def __enter__(self):
+        """Enter context of all members."""
+        with ExitStack() as stack:
+            with suppress(AttributeError):
+                stack.enter_context(self.stdout)
+            with suppress(AttributeError):
+                stack.enter_context(self.stderr)
+
+            self._close_files = stack.pop_all().close
+
+        return super().__enter__()
+
+
+class InjectSysIoContextManager(StdioTuple):
+    """Replace sys stdio with members of the tuple."""
+
+    def __enter__(self):
+        """Enter context, replacing sys stdio objects with capturing streams."""
+        self._prior_stdin = sys.stdin
+        self._prior_raw_out = (sys.stdout.buffer.raw, sys.stderr.buffer.raw)
+
+        super().__enter__()
+
+        sys.stdin = self.stdin
+        sys.stdout.buffer.__init__(self.stdout.buffer.raw)
+        sys.stderr.buffer.__init__(self.stderr.buffer.raw)
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Exit context, restoring state of sys module."""
+        sys.stdin = self._prior_stdin
+        sys.stdout.buffer.__init__(self._prior_raw_out[0])
+        sys.stderr.buffer.__init__(self._prior_raw_out[1])
+
+        return super().__exit__(exc_type, exc_value, traceback)
