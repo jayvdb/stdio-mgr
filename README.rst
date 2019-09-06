@@ -52,16 +52,17 @@ been imported via:
 
 .. code::
 
-    from stdio_mgr import stdio_mgr
+    >>> from stdio_mgr import stdio_mgr
 
 **Mock** ``stdout``\ **:**
 
 .. code::
 
+    >>> import os
     >>> with stdio_mgr() as (in_, out_, err_):
     ...     print('foobar')
     ...     out_cap = out_.getvalue()
-    >>> out_cap
+    >>> out_cap.replace(os.linesep, '\n')
     'foobar\n'
     >>> in_.closed and out_.closed and err_.closed
     True
@@ -83,7 +84,7 @@ upon exiting the managed context.
     >>> with stdio_mgr() as (in_, out_, err_):
     ...     warnings.warn("foo has no bar")
     ...     err_cap = err_.getvalue()
-    >>> err_cap
+    >>> err_cap.replace(os.linesep, '\n')
     '...UserWarning: foo has no bar\n...'
 
 
@@ -114,7 +115,7 @@ within the managed context as needed:
     'foobar'
     >>> in_cap2
     'foo'
-    >>> out_cap
+    >>> out_cap.replace(os.linesep, '\n')
     'baz\n??? foobar\n??? foo\n'
 
 The ``_ =`` assignment suppresses ``print``\ ing of the return value
