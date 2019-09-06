@@ -157,3 +157,23 @@ class _MultiCloseContextManager(StdioTuple):
         """Exit context, closing all members."""
         self.close()
         return super().__exit__(exc_type, exc_value, traceback)
+
+
+class ReplaceSysIoContextManager(StdioTuple):
+    """Replace sys stdio with members of the tuple."""
+
+    def __enter__(self):
+        """Enter context, replacing sys stdio objects with capturing streams."""
+        self._prior_streams = (sys.stdin, sys.stdout, sys.stderr)
+
+        super().__enter__()
+
+        (sys.stdin, sys.stdout, sys.stderr) = self
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Exit context, restoring state of sys module."""
+        (sys.stdin, sys.stdout, sys.stderr) = self._prior_streams
+
+        return super().__exit__(exc_type, exc_value, traceback)

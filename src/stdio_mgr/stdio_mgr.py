@@ -26,7 +26,6 @@ interactions.
 
 """
 
-import sys
 from contextlib import suppress
 from io import (
     BufferedRandom,
@@ -38,7 +37,7 @@ from io import (
     TextIOWrapper,
 )
 
-from .types import _MultiCloseContextManager
+from .types import _MultiCloseContextManager, ReplaceSysIoContextManager
 
 
 class _PersistedBytesIO(BytesIO):
@@ -267,7 +266,7 @@ class SafeCloseTeeStdin(_SafeCloseIOBase, TeeStdin):
     """
 
 
-class StdioManager(_MultiCloseContextManager):
+class StdioManager(ReplaceSysIoContextManager, _MultiCloseContextManager):
     r"""Substitute temporary text buffers for `stdio` in a managed context.
 
     Context manager.
@@ -324,22 +323,10 @@ class StdioManager(_MultiCloseContextManager):
 
         return self
 
-    def __enter__(self):
-        """Enter context, replacing sys stdio objects with capturing streams."""
-        self._prior_streams = (sys.stdin, sys.stdout, sys.stderr)
-
-        super().__enter__()
-
-        (sys.stdin, sys.stdout, sys.stderr) = self
-
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Exit context, closing files and restoring state of sys module."""
-        (sys.stdin, sys.stdout, sys.stderr) = self._prior_streams
-
+    def close(self):
+        """Close files only if requested."""
         if self._close:
-            super().__exit__(exc_type, exc_value, traceback)
+            return super().close()
 
 
 stdio_mgr = StdioManager
