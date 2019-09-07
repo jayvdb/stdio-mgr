@@ -31,11 +31,13 @@ from io import (
     BufferedRandom,
     BufferedReader,
     BytesIO,
+    FileIO,
     SEEK_END,
     SEEK_SET,
     TextIOBase,
     TextIOWrapper,
 )
+from tempfile import NamedTemporaryFile
 
 from .types import _OutStreamsCloseContextManager, InjectSysIoContextManager
 
@@ -50,6 +52,39 @@ class _PersistedBytesIO(BytesIO):
     def __init__(self, closure_callback):
         """Store callback invoked before close."""
         self._callback = closure_callback
+        super().__init__()
+
+    def close(self):
+        """Send buffer to callback and close."""
+        self._callback(self.getvalue())
+        super().close()
+
+
+class _PersistedFileIO(FileIO):
+    """Class to persist the value of a file after close.
+
+    A copy of the bytes value is given to a callback prior to
+    the :meth:`~io.IOBase.close`.
+    """
+
+    def __new__(cls, closure_callback):
+        """Store callback invoked before close."""
+        f = NamedTemporaryFile(mode="w+b")
+        self = super().__new__(cls, f.fileno(), mode="w+b")
+        self._f = f
+        self._f.__enter__()
+        self._callback = closure_callback
+        return self
+
+    def __init__(self, closure_callback):
+        super().__init__(self._f.fileno(), mode="w+b")
+
+    def getvalue(self):
+        pos = self.tell()
+        self.seek(0, SEEK_SET)
+        retval = self.read()
+        self.seek(pos, SEEK_SET)
+        return retval
 
     def close(self):
         """Send buffer to callback and close."""
@@ -75,7 +110,8 @@ class RandomTextIO(TextIOWrapper):
 
     def __init__(self):
         """Initialise buffer with utf-8 encoding."""
-        self._stream = _PersistedBytesIO(self._set_closed_buf)
+        if not hasattr(self, "_stream"):
+            self._stream = _PersistedBytesIO(self._set_closed_buf)
         self._buf = BufferedRandom(self._stream)
         super().__init__(self._buf, encoding="utf-8")
 
@@ -93,6 +129,15 @@ class RandomTextIO(TextIOWrapper):
             return self._closed_buf.decode(self.encoding)
         else:
             return self._stream.getvalue().decode(self.encoding)
+
+
+class RandomFileIO(RandomTextIO):
+    """Class to capture writes to a file even when detached."""
+
+    def __init__(self):
+        """Initialise buffer with utf-8 encoding."""
+        self._stream = _PersistedFileIO(self._set_closed_buf)
+        super().__init__()
 
 
 class _Tee(TextIOWrapper):
@@ -259,6 +304,13 @@ class SafeCloseRandomTextIO(_SafeCloseIOBase, RandomTextIO):
     """
 
 
+class SafeCloseRandomFileIO(_SafeCloseIOBase, RandomFileIO):
+    """Class to capture writes to a buffer even when detached, and safely close.
+
+    Subclass of :class:`~_SafeCloseIOBase` and :class:`~RandomFileIO`.
+    """
+
+
 class SafeCloseTeeStdin(_SafeCloseIOBase, TeeStdin):
     """Class to tee contents to a side buffer on read, and safely close.
 
@@ -266,7 +318,7 @@ class SafeCloseTeeStdin(_SafeCloseIOBase, TeeStdin):
     """
 
 
-class StdioManager(InjectSysIoContextManager, _OutStreamsCloseContextManager):
+class StdioManager(InjectSysIoContextManager):
     r"""Substitute temporary text buffers for `stdio` in a managed context.
 
     Context manager.
@@ -307,10 +359,10 @@ class StdioManager(InjectSysIoContextManager, _OutStreamsCloseContextManager):
     def __new__(cls, in_str="", close=True):
         """Instantiate new context manager that emulates namedtuple."""
         if close:
-            out_cls = SafeCloseRandomTextIO
+            out_cls = SafeCloseRandomFileIO
             in_cls = SafeCloseTeeStdin
         else:
-            out_cls = RandomTextIO
+            out_cls = RandomFileIO
             in_cls = TeeStdin
 
         stdout = out_cls()
@@ -324,9 +376,7 @@ class StdioManager(InjectSysIoContextManager, _OutStreamsCloseContextManager):
         return self
 
     def close(self):
-        """Close files only if requested."""
-        if self._close:
-            return super().close()
+        """Dont close any streams."""
 
 
 stdio_mgr = StdioManager

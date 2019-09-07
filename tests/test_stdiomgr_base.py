@@ -332,8 +332,11 @@ def test_exception():
     assert (sys.stdin, sys.stdout, sys.stderr) == real_sys_stdio
 
 
-def test_manual_close(convert_newlines):
+def test_manual_close(convert_newlines, unbufferedio):
     """Confirm files remain open if close=False after the context has exited."""
+    if unbufferedio:
+        pytest.skip("Skip detach/close not handled yet")
+
     with stdio_mgr(close=False) as (i, o, e):
         test_default_stdin(convert_newlines)
 
@@ -348,8 +351,11 @@ def test_manual_close(convert_newlines):
     e.close()
 
 
-def test_manual_close_detached_fails(convert_newlines):
+def test_manual_close_detached_fails(convert_newlines, unbufferedio):
     """Confirm files kept open become unusable after being detached."""
+    if unbufferedio:
+        pytest.skip("Skip detach/close not handled yet")
+
     with stdio_mgr(close=False) as (i, o, e):
         test_default_stdin(convert_newlines)
 
@@ -392,8 +398,11 @@ def test_manual_close_detached_fails(convert_newlines):
         e.closed
 
 
-def test_stdin_closed(convert_newlines):
+def test_stdin_closed(convert_newlines, unbufferedio):
     """Confirm stdin's buffer can be closed within the context."""
+    if unbufferedio:
+        pytest.skip("Skip detach/close not handled yet")
+
     with stdio_mgr() as (i, o, e):
         print("test str")
 
@@ -414,11 +423,14 @@ def test_stdin_closed(convert_newlines):
     assert convert_newlines("test str\n") == o.getvalue()
 
 
-def test_stdin_detached(convert_newlines):
+def test_stdin_detached(convert_newlines, unbufferedio):
     """Confirm stdin's buffer can be detached within the context.
 
     Like the real sys.stdin, use after detach should fail with ValueError.
     """
+    if unbufferedio:
+        pytest.skip("Skip detach/close not handled yet")
+
     with stdio_mgr() as (i, o, e):
         print("test str")
 
@@ -463,12 +475,15 @@ def test_stdin_detached(convert_newlines):
     assert e.closed
 
 
-def test_stdout_detached(convert_newlines):
+def test_stdout_detached(convert_newlines, unbufferedio):
     """Confirm stdout's buffer can be detached within the context.
 
     Like the real sys.stdout, writes after detach should fail, however
     writes to the detached stream should be captured.
     """
+    if unbufferedio:
+        pytest.skip("Skip detach/close not handled yet")
+
     with stdio_mgr() as (i, o, e):
         print("test str")
 
@@ -510,8 +525,11 @@ def test_stdout_detached(convert_newlines):
     assert e.closed
 
 
-def test_stdout_access_buffer_after_close(convert_newlines):
+def test_stdout_access_buffer_after_close(convert_newlines, unbufferedio):
     """Confirm stdout's buffer is captured after close."""
+    if unbufferedio:
+        pytest.skip("Skip detach/close not handled yet")
+
     with stdio_mgr() as (i, o, e):
         print("test str")
 

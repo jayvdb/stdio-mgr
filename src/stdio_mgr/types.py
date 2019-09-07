@@ -201,20 +201,20 @@ class InjectSysIoContextManager(StdioTuple):
     def __enter__(self):
         """Enter context, replacing sys stdio objects with capturing streams."""
         self._prior_stdin = sys.stdin
-        self._prior_raw_out = (sys.stdout.buffer.raw, sys.stderr.buffer.raw)
+        self._prior_filenos = (sys.stdout.fileno(), sys.stderr.fileno())
 
         super().__enter__()
 
         sys.stdin = self.stdin
-        sys.stdout.buffer.__init__(self.stdout.buffer.raw)
-        sys.stderr.buffer.__init__(self.stderr.buffer.raw)
+        sys.stdout.buffer.__init__(self.stdout.fileno())
+        sys.stderr.buffer.__init__(self.stderr.fileno())
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit context, restoring state of sys module."""
         sys.stdin = self._prior_stdin
-        sys.stdout.buffer.__init__(self._prior_raw_out[0])
-        sys.stderr.buffer.__init__(self._prior_raw_out[1])
+        sys.stdout.buffer.__init__(self._prior_filenos[0], mode="wb", closefd=False)
+        sys.stderr.buffer.__init__(self._prior_filenos[1], mode="wb", closefd=False)
 
         return super().__exit__(exc_type, exc_value, traceback)
