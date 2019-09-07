@@ -73,6 +73,12 @@ def enable_warnings_plugin(request):
         yield
 
 
+@pytest.fixture(scope="session")
+def unbufferedio():
+    """Provide concise access to PYTHONUNBUFFERED envvar."""
+    return os.environ.get("PYTHONUNBUFFERED")
+
+
 @pytest.fixture(autouse=True)
 def add_stdio_mgr(doctest_namespace):
     """Add stdio_mgr to doctest namespace."""
