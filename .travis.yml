@@ -21,6 +21,7 @@ jobs:
      - choco install python --version 3.7.2
      - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
      - export PYTHONLEGACYWINDOWSSTDIO=1
+     - export PYTHONUNBUFFERED=1
 script:
  - python --version
  - pip list
