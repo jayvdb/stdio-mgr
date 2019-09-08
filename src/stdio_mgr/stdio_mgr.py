@@ -39,7 +39,12 @@ from io import (
 )
 from tempfile import TemporaryFile
 
-from stdio_mgr.types import InjectSysIoContextManager
+from stdio_mgr.types import (
+    _OutStreamsCloseContextManager,
+    InjectSysIoContextManager,
+    StdioTuple,
+)
+from stdio_mgr.io import is_stdio_unbufferedio
 
 
 class _PersistedBytesIO(BytesIO):
@@ -330,7 +335,7 @@ class SafeCloseTeeStdin(_SafeCloseIOBase, TeeStdin):
     """
 
 
-class StdioManager(InjectSysIoContextManager):
+class StdioManagerBase(StdioTuple):
     r"""Substitute temporary text buffers for `stdio` in a managed context.
 
     Context manager.
@@ -370,31 +375,55 @@ class StdioManager(InjectSysIoContextManager):
 
     def __new__(cls, in_str="", close=True):
         """Instantiate new context manager that emulates namedtuple."""
-        if close:
-            out_cls = SafeCloseRandomFileIO
+        if close or _unbufferedio:
+            if _unbufferedio:
+                out_cls = SafeCloseRandomFileIO
+            else:
+                out_cls = SafeCloseRandomTextIO
             in_cls = SafeCloseTeeStdin
         else:
-            out_cls = RandomFileIO
+            # no unbufferedio equivalent exists yet
+            out_cls = RandomTextIO
             in_cls = TeeStdin
 
         stdout = out_cls()
         stderr = out_cls()
         stdin = in_cls(stdout, in_str)
 
-        self = super(StdioManager, cls).__new__(cls, [stdin, stdout, stderr])
+        self = super(StdioManagerBase, cls).__new__(cls, [stdin, stdout, stderr])
 
         self._close = close
 
         return self
 
-    def close(self):
-        """Dont close out streams."""
-        self.stdin.close()
 
-    def __del__(self):
-        """Delete temporary files."""
-        del self.stdout._stream._f
-        del self.stderr._stream._f
+_unbufferedio = is_stdio_unbufferedio()
+
+
+if _unbufferedio:
+
+    class StdioManager(InjectSysIoContextManager, StdioManagerBase):  # noqa: D101
+
+        _RAW = False
+
+        def close(self):
+            """Dont close any streams."""
+
+        def __del__(self):
+            """Delete temporary files."""
+            del self.stdout._stream._f
+            del self.stderr._stream._f
+
+
+else:
+
+    class StdioManager(  # noqa: D101
+        InjectSysIoContextManager, _OutStreamsCloseContextManager, StdioManagerBase
+    ):
+        def close(self):
+            """Close files only if requested."""
+            if self._close:
+                return super().close()
 
 
 stdio_mgr = StdioManager
