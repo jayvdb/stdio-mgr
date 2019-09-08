@@ -47,7 +47,7 @@ _WARNING_ARGS_ERROR = "Please use pytest -p no:warnings or pytest --W error::War
 _BUFFER_DETACHED_MSG = "underlying buffer has been detached"
 
 
-def test_context_manager_instance():
+def test_context_manager_instantiation():
     """Confirm StdioManager instance is a tuple and registered context manager."""
     cm = StdioManager()
 

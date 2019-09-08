@@ -198,26 +198,40 @@ class _OutStreamsCloseContextManager(_MultiCloseContextManager):
 class InjectSysIoContextManager(StdioTuple):
     """Replace sys stdio with members of the tuple."""
 
+    _RAW = True
+
     def __enter__(self):
         """Enter context, replacing sys stdio objects with capturing streams."""
         self._prior_stdin = sys.stdin
-        self._prior_filenos = (sys.stdout.fileno(), sys.stderr.fileno())
+        if self._RAW:
+            self._prior_out = sys.stdout.buffer.raw, sys.stderr.buffer.raw
+            new_stdout = self.stdout.buffer.raw
+            new_stderr = self.stderr.buffer.raw
+        else:
+            self._prior_out = (sys.stdout.fileno(), sys.stderr.fileno())
+            new_stdout = self.stdout.fileno()
+            new_stderr = self.stderr.fileno()
 
         super().__enter__()
 
         sys.stdin = self.stdin
-        sys.stdout.buffer.__init__(self.stdout.fileno())
-        sys.stderr.buffer.__init__(self.stderr.fileno())
+        sys.stdout.buffer.__init__(new_stdout)
+        sys.stderr.buffer.__init__(new_stderr)
 
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit context, restoring state of sys module."""
-        self.stdout._save_value()
-        self.stderr._save_value()
+        if not self._RAW:
+            self.stdout._save_value()
+            self.stderr._save_value()
 
         sys.stdin = self._prior_stdin
-        sys.stdout.buffer.__init__(self._prior_filenos[0], mode="wb", closefd=False)
-        sys.stderr.buffer.__init__(self._prior_filenos[1], mode="wb", closefd=False)
+        if self._RAW:
+            sys.stdout.buffer.__init__(self._prior_out[0])
+            sys.stderr.buffer.__init__(self._prior_out[1])
+        else:
+            sys.stdout.buffer.__init__(self._prior_out[0], mode="wb", closefd=False)
+            sys.stderr.buffer.__init__(self._prior_out[1], mode="wb", closefd=False)
 
         return super().__exit__(exc_type, exc_value, traceback)

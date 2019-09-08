@@ -34,26 +34,7 @@ import _pytest.warnings
 import pytest
 
 from stdio_mgr import stdio_mgr
-
-
-def is_stdout_buffered():
-    """Check if stdout is buffered.
-
-    Copied from https://stackoverflow.com/a/49736559
-    Licensed CC-BY-SA 4.0
-    Author https://stackoverflow.com/users/528711/sparrowt
-    """
-    # Print a single space + carriage return but no new-line
-    # (should have no visible effect)
-    print(" \r")
-    # If the file position is a positive integer then stdout is buffered
-    try:
-        pos = sys.stdout.tell()
-        if pos > 0:
-            return True
-    except IOError:  # In some terminals tell() throws IOError if stdout is unbuffered
-        pass
-    return False
+from stdio_mgr.io import is_stdio_unbufferedio
 
 
 @pytest.fixture(scope="session")
@@ -96,7 +77,7 @@ def enable_warnings_plugin(request):
 @pytest.fixture(scope="session")
 def unbufferedio():
     """Provide concise access to PYTHONUNBUFFERED envvar."""
-    return os.environ.get("PYTHONUNBUFFERED") or not is_stdout_buffered()
+    return is_stdio_unbufferedio()
 
 
 @pytest.fixture(autouse=True)
