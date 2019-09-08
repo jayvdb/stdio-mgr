@@ -32,5 +32,5 @@ jobs:
       - script: pip install -r requirements-ci.txt
         displayName: Install CI requirements
 
-      - script: PYTHONUNBUFFERED=1 pytest
+      - script: python -u -m pytest
         displayName: Run pytest (Python ${{ python.value.spec }})
