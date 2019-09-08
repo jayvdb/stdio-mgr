@@ -25,7 +25,7 @@ def is_stdout_buffered():
 
 
 def is_stdio_unbufferedio():
-    """Detect if PYTHONUNBUFFERED was set or if -u was used."""
+    """Detect if PYTHONUNBUFFERED was set or CI was set as proxy for -u."""
     # Use of is_stdout_buffered is temporary, because -u is not reflected
     # anywhere in the python sys module, such as sys.flags.
     # It is undesirable as written, as it has side-effects, especially bad
@@ -39,8 +39,8 @@ def is_stdio_unbufferedio():
     # may be very different by the time that a StdioManager is instantiated
     if os.environ.get("PYTHONUNBUFFERED"):
         return True
-    if not sys.stdout.isatty():
-        return True
-    if not is_stdout_buffered():
-        return True
-    return False
+
+    if not os.environ.get("CI"):
+        return False
+
+    return True
