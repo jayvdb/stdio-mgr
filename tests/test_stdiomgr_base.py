@@ -28,6 +28,7 @@ interactions.
 
 import collections.abc
 import io
+import os
 import sys
 import warnings
 
@@ -50,6 +51,8 @@ _BUFFER_DETACHED_MSG = "underlying buffer has been detached"
 def test_context_manager_instantiation():
     """Confirm StdioManager instance is a tuple and registered context manager."""
     cm = StdioManager()
+
+    assert sys.stdout.isatty()
 
     assert isinstance(cm, tuple)
 
