@@ -52,9 +52,6 @@ def test_context_manager_instantiation():
     """Confirm StdioManager instance is a tuple and registered context manager."""
     cm = StdioManager()
 
-    assert sys.stdout.isatty()
-    assert is_stdout_buffered()
-
     assert isinstance(cm, tuple)
 
     value_list = list(cm)
