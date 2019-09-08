@@ -28,7 +28,6 @@ interactions.
 
 import collections.abc
 import io
-import os
 import sys
 import warnings
 
@@ -41,6 +40,7 @@ except ImportError:
 import pytest
 
 from stdio_mgr import stdio_mgr, StdioManager
+from stdio_mgr.io import is_stdout_buffered
 from stdio_mgr.stdio_mgr import _Tee
 from stdio_mgr.types import _MultiCloseContextManager, StdioTuple, TextIOTuple
 
@@ -52,6 +52,7 @@ def test_context_manager_instantiation():
     """Confirm StdioManager instance is a tuple and registered context manager."""
     cm = StdioManager()
 
+    assert is_stdout_buffered()
     assert sys.stdout.isatty()
 
     assert isinstance(cm, tuple)
