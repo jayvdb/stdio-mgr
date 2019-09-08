@@ -37,7 +37,7 @@ from io import (
     TextIOBase,
     TextIOWrapper,
 )
-from tempfile import NamedTemporaryFile
+from tempfile import TemporaryFile
 
 from .types import InjectSysIoContextManager
 
@@ -69,7 +69,7 @@ class _PersistedFileIO(FileIO):
 
     def __new__(cls, closure_callback):
         """Store callback invoked before close."""
-        f = NamedTemporaryFile(mode="w+b")
+        f = TemporaryFile(mode="w+b")
         self = super().__new__(cls, f.fileno(), mode="w+b")
         self._f = f
         self._f.__enter__()
