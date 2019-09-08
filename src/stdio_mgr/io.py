@@ -39,8 +39,8 @@ def is_stdio_unbufferedio():
     # may be very different by the time that a StdioManager is instantiated
     if os.environ.get("PYTHONUNBUFFERED"):
         return True
-    if is_stdout_buffered():
-        return False
-    if sys.stdout.isatty():
-        return False
-    return True
+    if not sys.stdout.isatty():
+        return True
+    if not is_stdout_buffered():
+        return True
+    return False
