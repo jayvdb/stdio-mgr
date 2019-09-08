@@ -39,7 +39,7 @@ from io import (
 )
 from tempfile import TemporaryFile
 
-from .types import InjectSysIoContextManager
+from stdio_mgr.types import InjectSysIoContextManager
 
 
 class _PersistedBytesIO(BytesIO):
@@ -90,6 +90,7 @@ class _PersistedFileIO(FileIO):
 
     def close(self):
         """Send buffer to callback and close."""
+        # This isnt being called in unbufferedio mode
         self._callback(self.getvalue())
         # Do not call super close()
 
@@ -115,6 +116,7 @@ class RandomTextIO(TextIOWrapper):
         if not hasattr(self, "_stream"):
             self._stream = _PersistedBytesIO(self._set_closed_buf)
         self._buf = BufferedRandom(self._stream)
+        self._closed_buf = None
         super().__init__(self._buf, encoding="utf-8")
 
     def write(self, *args, **kwargs):
@@ -127,10 +129,13 @@ class RandomTextIO(TextIOWrapper):
 
     def getvalue(self):
         """Obtain buffer of text sent to the stream."""
-        if self._stream.closed:
+        if self._closed_buf is not None:
             return self._closed_buf.decode(self.encoding)
         else:
             return self._stream.getvalue().decode(self.encoding)
+
+    def _save_value(self):
+        self._closed_buf = self._stream.getvalue()
 
 
 class RandomFileIO(RandomTextIO):
@@ -140,6 +145,11 @@ class RandomFileIO(RandomTextIO):
         """Initialise buffer with utf-8 encoding."""
         self._stream = _PersistedFileIO(self._set_closed_buf)
         super().__init__()
+
+    def close(self):
+        """Detach buffer on close, to more closely emulate close."""
+        self._save_value()
+        self.detach()
 
 
 class _Tee(TextIOWrapper):
@@ -378,7 +388,8 @@ class StdioManager(InjectSysIoContextManager):
         return self
 
     def close(self):
-        """Dont close any streams."""
+        """Dont close out streams."""
+        self.stdin.close()
 
     def __del__(self):
         """Delete temporary files."""

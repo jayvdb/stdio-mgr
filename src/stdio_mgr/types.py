@@ -213,6 +213,9 @@ class InjectSysIoContextManager(StdioTuple):
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Exit context, restoring state of sys module."""
+        self.stdout._save_value()
+        self.stderr._save_value()
+
         sys.stdin = self._prior_stdin
         sys.stdout.buffer.__init__(self._prior_filenos[0], mode="wb", closefd=False)
         sys.stderr.buffer.__init__(self._prior_filenos[1], mode="wb", closefd=False)
