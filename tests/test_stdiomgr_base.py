@@ -303,7 +303,7 @@ def test_managed_stdin(convert_newlines):
 
 def test_repeated_use(convert_newlines):
     """Confirm repeated stdio_mgr use works correctly."""
-    for _ in range(4):
+    for _ in range(100):
         # Tests both stdin and stdout
         test_default_stdin(convert_newlines)
 
