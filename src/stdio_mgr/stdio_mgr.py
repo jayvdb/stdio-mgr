@@ -77,9 +77,11 @@ class _PersistedFileIO(FileIO):
         return self
 
     def __init__(self, closure_callback):
+        """Invoke FileIO()."""
         super().__init__(self._f.fileno(), mode="w+b")
 
     def getvalue(self):
+        """Send buffer to callback and close."""
         pos = self.tell()
         self.seek(0, SEEK_SET)
         retval = self.read()
@@ -89,7 +91,7 @@ class _PersistedFileIO(FileIO):
     def close(self):
         """Send buffer to callback and close."""
         self._callback(self.getvalue())
-        super().close()
+        # Do not call super close()
 
 
 class RandomTextIO(TextIOWrapper):
@@ -377,6 +379,11 @@ class StdioManager(InjectSysIoContextManager):
 
     def close(self):
         """Dont close any streams."""
+
+    def __del__(self):
+        """Delete temporary files."""
+        del self.stdout._stream._f
+        del self.stderr._stream._f
 
 
 stdio_mgr = StdioManager
