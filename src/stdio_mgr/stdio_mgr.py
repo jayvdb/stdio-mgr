@@ -38,10 +38,15 @@ from io import (
     TextIOWrapper,
 )
 
-from .types import StdioTuple, _MultiCloseContextManager, ReplaceSysIoContextManager
+from .types import (
+    _MultiCloseContextManager,
+    AnyIOTuple,
+    ReplaceSysIoContextManager,
+    StdioTupleBase,
+)
 
-_RUNTIME_SYS_STREAMS = StdioTuple([sys.__stdin__, sys.__stdout__, sys.__stderr__])
-_IMPORT_SYS_STREAMS = StdioTuple([sys.stdin, sys.stdout, sys.stderr])
+_RUNTIME_SYS_STREAMS = AnyIOTuple([sys.__stdin__, sys.__stdout__, sys.__stderr__])
+_IMPORT_SYS_STREAMS = AnyIOTuple([sys.stdin, sys.stdout, sys.stderr])
 
 
 class _PersistedBytesIO(BytesIO):
@@ -270,7 +275,9 @@ class SafeCloseTeeStdin(_SafeCloseIOBase, TeeStdin):
     """
 
 
-class StdioManager(ReplaceSysIoContextManager, _MultiCloseContextManager, StdioTuple):
+class StdioManager(
+    ReplaceSysIoContextManager, _MultiCloseContextManager, StdioTupleBase
+):
     r"""Substitute temporary text buffers for `stdio` in a managed context.
 
     Context manager.

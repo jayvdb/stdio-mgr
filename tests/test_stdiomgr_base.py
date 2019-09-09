@@ -34,16 +34,17 @@ import warnings
 import pytest
 
 from stdio_mgr import stdio_mgr, StdioManager
-from stdio_mgr.stdio_mgr import _Tee
+from stdio_mgr.stdio_mgr import _IMPORT_SYS_STREAMS, _RUNTIME_SYS_STREAMS, _Tee
 from stdio_mgr.types import (
     _MultiCloseContextManager,
     ABC,
     AbstractContextManager,
+    FakeIOTuple,
     MultiItemTuple,
     ReplaceSysIoContextManager,
-    StdioTuple,
-    TupleContextManager,
+    StdioTupleBase,
     TextIOTuple,
+    TupleContextManager,
 )
 
 _WARNING_ARGS_ERROR = "Please use pytest -p no:warnings or pytest --W error::Warning"
@@ -74,13 +75,18 @@ def test_context_manager_instantiation():
     # Check copies are equal
     assert list(cm) == value_list
 
+
+def test_context_manager_mro():
+    """Confirm StdioManager instance has correct MRO."""
+    cm = StdioManager()
+
     mro = cm.__class__.__mro__
 
     assert mro == (
         StdioManager,
         ReplaceSysIoContextManager,
         _MultiCloseContextManager,
-        StdioTuple,
+        StdioTupleBase,
         TupleContextManager,
         tuple,
         AbstractContextManager,
@@ -91,7 +97,7 @@ def test_context_manager_instantiation():
     )
     # _MultiCloseContextManager provides the correct close(), so
     # must be before StdioTuple
-    assert mro.index(_MultiCloseContextManager) < mro.index(StdioTuple)
+    assert mro.index(_MultiCloseContextManager) < mro.index(StdioTupleBase)
 
 
 def test_context_manager_instance_with():
@@ -565,34 +571,6 @@ def test_stdout_access_buffer_after_close(convert_newlines):
         assert convert_newlines("test str\nsecond test str\n") == o.getvalue()
 
     assert convert_newlines("test str\nsecond test str\n") == o.getvalue()
-
-
-def test_tee_type():
-    """Test that incorrect type for Tee.tee raises ValueError."""
-    with pytest.raises(ValueError) as err:
-        _Tee(tee="str", buffer=io.StringIO())
-
-    assert str(err.value) == "tee must be a TextIOBase."
-
-
-def test_non_closing_type():
-    """Test that incorrect type doesnt raise exceptions."""
-    empty_string = ""
-
-    # Ensure empty_string used has no __exit__ or close()
-    assert not hasattr(empty_string, "__exit__")
-    assert not hasattr(empty_string, "close")
-
-    with StdioTuple((empty_string, empty_string, empty_string)):
-        pass
-
-    #with _MultiCloseContextManager(("", "", "")):
-    #    pass
-
-    with pytest.raises(ValueError) as err:
-        TextIOTuple((empty_string, empty_string, empty_string))
-
-    assert str(err.value) == "iterable must contain only TextIOBase"
 
 
 @pytest.mark.xfail(reason="Want to ensure 'real' warnings aren't suppressed")

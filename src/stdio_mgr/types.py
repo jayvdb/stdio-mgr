@@ -53,9 +53,7 @@ except ImportError:  # pragma: no cover
         def __subclasshook__(cls, subclass):
             """Check whether subclass is considered a subclass of this ABC."""
             if cls is AbstractContextManager:
-                return collections.abc._check_methods(
-                    subclass, "__enter__", "__exit__"
-                )
+                return collections.abc._check_methods(subclass, "__enter__", "__exit__")
             return NotImplemented
 
 
@@ -96,7 +94,7 @@ class TupleContextManager(tuple, AbstractContextManager):
     # This is needed to establish a workable MRO.
 
 
-class StdioTuple(TupleContextManager, MultiItemTuple):
+class StdioTupleBase(TupleContextManager, MultiItemTuple):
     """Tuple context manager of stdin, stdout and stderr stream-like objects."""
 
     def __new__(cls, iterable):
@@ -104,7 +102,7 @@ class StdioTuple(TupleContextManager, MultiItemTuple):
         items = list(iterable)
         assert len(items) == 3, "iterable must be three items"  # noqa: S101
 
-        return super(StdioTuple, cls).__new__(cls, items)
+        return super(StdioTupleBase, cls).__new__(cls, items)
 
     @property
     def stdin(self):
@@ -126,7 +124,7 @@ class StdioTuple(TupleContextManager, MultiItemTuple):
         return self._all("close")
 
 
-class TextIOTuple(StdioTuple):
+class TextIOTuple(StdioTupleBase):
     """Tuple context manager of stdin, stdout and stderr TextIOBase objects."""
 
     _ITEM_BASE = TextIOBase
@@ -136,11 +134,26 @@ class TextIOTuple(StdioTuple):
 
     def __new__(cls, iterable):
         """Instantiate new tuple from iterable containing three TextIOBase streams."""
-        self = super(StdioTuple, cls).__new__(cls, iterable)
+        self = super(TextIOTuple, cls).__new__(cls, iterable)
         if not self._all(lambda item: isinstance(item, cls._ITEM_BASE)):
             raise ValueError(
-                "iterable must contain only {}".format(cls._ITEM_BASE.__name__))
+                "iterable must contain only {}".format(cls._ITEM_BASE.__name__)
+            )
         return self
+
+
+class FakeIOTuple(StdioTupleBase):
+    """Tuple context manager of stdin, stdout and stderr-like objects."""
+
+
+class AnyIOTuple(StdioTupleBase):
+    def __new__(cls, iterable):
+        """Instantiate new TextIOTuple or StdioTuple from iterable."""
+        items = list(iterable)
+        if any(not isinstance(item, TextIOTuple._ITEM_BASE) for item in items):
+            return FakeIOTuple(items)
+        else:
+            return TextIOTuple(items)
 
 
 class _MultiCloseContextManager(AbstractContextManager, MultiItemTuple):
@@ -165,11 +178,11 @@ class _MultiCloseContextManager(AbstractContextManager, MultiItemTuple):
         return super().__exit__(exc_type, exc_value, traceback)
 
 
-class ReplaceSysIoContextManager(StdioTuple):
+class ReplaceSysIoContextManager(StdioTupleBase):
     """Replace sys stdio with members of the tuple."""
 
     def __enter__(self):
-        """Enter context, replacing sys stdio objects with capturing streams."""
+        """Enter context, replacing sys stdio objects with streams from this tuple."""
         self._prior_streams = (sys.stdin, sys.stdout, sys.stderr)
 
         super().__enter__()
