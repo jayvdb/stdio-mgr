@@ -26,6 +26,7 @@ interactions.
 
 """
 
+import abc
 import collections.abc
 import io
 import sys
@@ -36,7 +37,6 @@ import pytest
 from stdio_mgr import stdio_mgr, StdioManager
 from stdio_mgr.types import (
     _MultiCloseContextManager,
-    ABC,
     AbstractContextManager,
     MultiItemTuple,
     ReplaceSysIoContextManager,
@@ -87,7 +87,7 @@ def test_context_manager_mro():
         TupleContextManager,
         tuple,
         AbstractContextManager,
-        ABC,
+        abc.ABC,
         MultiItemTuple,
         collections.abc.Iterable,
         object,

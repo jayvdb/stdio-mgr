@@ -25,8 +25,8 @@ interaction with ``stdin``/``stdout``/``stderr`` as a tuple.
 
 """
 import collections.abc
+import abc
 import sys
-from abc import ABC, abstractmethod
 from contextlib import ExitStack, suppress
 from io import TextIOBase
 
@@ -39,14 +39,14 @@ try:
     from contextlib import AbstractContextManager
 except ImportError:  # pragma: no cover
 
-    class AbstractContextManager(ABC):
+    class AbstractContextManager(abc.ABC):
         """An abstract base class for context managers."""
 
         def __enter__(self):
             """Return `self` upon entering the runtime context."""
             return self
 
-        @abstractmethod
+        @abc.abstractmethod
         def __exit__(self, exc_type, exc_value, traceback):
             """Raise any exception triggered within the runtime context."""
             return None
