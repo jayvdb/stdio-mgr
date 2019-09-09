@@ -63,8 +63,9 @@ def test_context_manager_instantiation(stdio_mgr):
 
     if cm._RAW:
         assert not isinstance(cm, FileInjectStdioManager)
-    else:
         assert isinstance(cm, (BufferInjectStdioManager, BufferReplaceStdioManager))
+    else:
+        assert isinstance(cm, FileInjectStdioManager)
 
     value_list = list(cm)
 
@@ -357,7 +358,7 @@ def test_exception(stdio_mgr):
 
 def test_manual_close(stdio_mgr, convert_newlines):
     """Confirm files remain open if close=False after the context has exited."""
-    if isinstance(stdio_mgr, FileInjectStdioManager):
+    if stdio_mgr is FileInjectStdioManager:
         pytest.skip("Skip detach/close not handled yet")
 
     with stdio_mgr(close=False) as (i, o, e):
@@ -376,7 +377,7 @@ def test_manual_close(stdio_mgr, convert_newlines):
 
 def test_manual_close_detached_fails(stdio_mgr, convert_newlines):
     """Confirm files kept open become unusable after being detached."""
-    if isinstance(stdio_mgr, FileInjectStdioManager):
+    if stdio_mgr is FileInjectStdioManager:
         pytest.skip("Skip detach/close not handled yet")
 
     with stdio_mgr(close=False) as (i, o, e):
@@ -488,7 +489,7 @@ def test_stdin_detached(stdio_mgr, convert_newlines):
 
     assert str(err.value) == _BUFFER_DETACHED_MSG
 
-    if not isinstance(stdio_mgr, FileInjectStdioManager):
+    if stdio_mgr is not FileInjectStdioManager:
         assert o.closed
         assert e.closed
 
@@ -519,7 +520,7 @@ def test_stdout_detached(stdio_mgr, convert_newlines):
 
         # Similar to note in test_stdout_access_buffer_after_close,
         # but needs analysis to explain differently in this context
-        if stdio_mgr is not BufferInjectStdioManager:
+        if stdio_mgr not in (BufferInjectStdioManager, FileInjectStdioManager):
             with pytest.raises(ValueError) as err:
                 print("anything")
 
@@ -544,7 +545,7 @@ def test_stdout_detached(stdio_mgr, convert_newlines):
 
     assert str(err.value) == _BUFFER_DETACHED_MSG
 
-    if not isinstance(stdio_mgr, FileInjectStdioManager):
+    if stdio_mgr is not FileInjectStdioManager:
         assert i.closed
         assert e.closed
 

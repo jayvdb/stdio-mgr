@@ -424,6 +424,15 @@ class FileInjectStdioManager(InjectSysIoContextManager, StdioManagerBase):  # no
 
     def __del__(self):
         """Delete temporary files."""
+        try:
+            self.stdout._stream._f.close()
+        except (OSError, ValueError):
+            pass
+        try:
+            self.stderr._stream._f.close()
+        except (OSError, ValueError):
+            pass
+
         del self.stdout._stream._f
         del self.stderr._stream._f
 
