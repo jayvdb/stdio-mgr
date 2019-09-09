@@ -270,7 +270,7 @@ class SafeCloseTeeStdin(_SafeCloseIOBase, TeeStdin):
     """
 
 
-class StdioManager(ReplaceSysIoContextManager, _MultiCloseContextManager):
+class StdioManager(ReplaceSysIoContextManager, _MultiCloseContextManager, StdioTuple):
     r"""Substitute temporary text buffers for `stdio` in a managed context.
 
     Context manager.

@@ -31,17 +31,20 @@ import io
 import sys
 import warnings
 
-# AbstractContextManager was introduced in Python 3.6
-try:
-    from contextlib import AbstractContextManager
-except ImportError:
-    AbstractContextManager = object
-
 import pytest
 
 from stdio_mgr import stdio_mgr, StdioManager
 from stdio_mgr.stdio_mgr import _Tee
-from stdio_mgr.types import _MultiCloseContextManager, StdioTuple, TextIOTuple
+from stdio_mgr.types import (
+    _MultiCloseContextManager,
+    ABC,
+    AbstractContextManager,
+    MultiItemTuple,
+    ReplaceSysIoContextManager,
+    StdioTuple,
+    TupleContextManager,
+    TextIOTuple,
+)
 
 _WARNING_ARGS_ERROR = "Please use pytest -p no:warnings or pytest --W error::Warning"
 _SKIP_WARNING_TESTS = "Skip tests using warnings when warnings are errors"
@@ -49,7 +52,7 @@ _IO_OP_CLOSED_FILE = {"I/O operation on closed file", "I/O operation on closed f
 _UNDERLYING_BUFFER_DETACHED = "underlying buffer has been detached"
 
 
-def test_context_manager_instance():
+def test_context_manager_instantiation():
     """Confirm StdioManager instance is a tuple and registered context manager."""
     cm = StdioManager()
 
@@ -70,6 +73,25 @@ def test_context_manager_instance():
 
     # Check copies are equal
     assert list(cm) == value_list
+
+    mro = cm.__class__.__mro__
+
+    assert mro == (
+        StdioManager,
+        ReplaceSysIoContextManager,
+        _MultiCloseContextManager,
+        StdioTuple,
+        TupleContextManager,
+        tuple,
+        AbstractContextManager,
+        ABC,
+        MultiItemTuple,
+        collections.abc.Iterable,
+        object,
+    )
+    # _MultiCloseContextManager provides the correct close(), so
+    # must be before StdioTuple
+    assert mro.index(_MultiCloseContextManager) < mro.index(StdioTuple)
 
 
 def test_context_manager_instance_with():

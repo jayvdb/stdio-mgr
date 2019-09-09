@@ -24,12 +24,12 @@ interaction with ``stdin``/``stdout``/``stderr`` as a tuple.
 **Members**
 
 """
-import abc
+import collections.abc
 import sys
+from abc import ABC
 from contextlib import ExitStack, suppress
 from io import TextIOBase
 
-import _collections_abc
 
 # AbstractContextManager was introduced in Python 3.6
 # and may be used with typing.ContextManager.
@@ -37,7 +37,7 @@ try:
     from contextlib import AbstractContextManager
 except ImportError:  # pragma: no cover
 
-    class AbstractContextManager(abc.ABC):
+    class AbstractContextManager(ABC):
         """An abstract base class for context managers."""
 
         def __enter__(self):
@@ -53,13 +53,13 @@ except ImportError:  # pragma: no cover
         def __subclasshook__(cls, subclass):
             """Check whether subclass is considered a subclass of this ABC."""
             if cls is AbstractContextManager:
-                return _collections_abc._check_methods(
+                return collections.abc._check_methods(
                     subclass, "__enter__", "__exit__"
                 )
             return NotImplemented
 
 
-class MultiItemTuple():  # _collections_abc.Iterable
+class MultiItemTuple(collections.abc.Iterable):
     """Iterable with methods that operate on all items."""
 
     def _map_method(self, method: str):
@@ -96,7 +96,7 @@ class TupleContextManager(tuple, AbstractContextManager):
     # This is needed to establish a workable MRO.
 
 
-class StdioTuple(MultiItemTuple, TupleContextManager):
+class StdioTuple(TupleContextManager, MultiItemTuple):
     """Tuple context manager of stdin, stdout and stderr stream-like objects."""
 
     def __new__(cls, iterable):
@@ -143,7 +143,7 @@ class TextIOTuple(StdioTuple):
         return self
 
 
-class _MultiCloseContextManager(StdioTuple):
+class _MultiCloseContextManager(AbstractContextManager, MultiItemTuple):
     """Manage multiple closable members of a tuple."""
 
     def __enter__(self):
