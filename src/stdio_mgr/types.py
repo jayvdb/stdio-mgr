@@ -36,12 +36,12 @@ try:
     from contextlib import AbstractContextManager
 except ImportError:  # pragma: no cover
     # Copied from _collections_abc
-    def _check_methods(C, *methods):
-        mro = C.__mro__
+    def _check_methods(cls, *methods):
+        mro = cls.__mro__
         for method in methods:
-            for B in mro:
-                if method in B.__dict__:
-                    if B.__dict__[method] is None:
+            for base in mro:
+                if method in base.__dict__:
+                    if base.__dict__[method] is None:
                         return NotImplemented
                     break
             else:
