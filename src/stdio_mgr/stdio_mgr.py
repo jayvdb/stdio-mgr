@@ -26,6 +26,7 @@ interactions.
 
 """
 
+import sys
 from contextlib import suppress
 from io import (
     BufferedRandom,
@@ -37,7 +38,10 @@ from io import (
     TextIOWrapper,
 )
 
-from .types import _MultiCloseContextManager, ReplaceSysIoContextManager
+from .types import StdioTuple, _MultiCloseContextManager, ReplaceSysIoContextManager
+
+_RUNTIME_SYS_STREAMS = StdioTuple([sys.__stdin__, sys.__stdout__, sys.__stderr__])
+_IMPORT_SYS_STREAMS = StdioTuple([sys.stdin, sys.stdout, sys.stderr])
 
 
 class _PersistedBytesIO(BytesIO):

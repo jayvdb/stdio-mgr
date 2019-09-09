@@ -555,18 +555,20 @@ def test_tee_type():
 
 def test_non_closing_type():
     """Test that incorrect type doesnt raise exceptions."""
-    # Ensure the type used has no __exit__ or close()
-    assert not hasattr("", "__exit__")
-    assert not hasattr("", "close")
+    empty_string = ""
 
-    with StdioTuple(("", "", "")):
+    # Ensure empty_string used has no __exit__ or close()
+    assert not hasattr(empty_string, "__exit__")
+    assert not hasattr(empty_string, "close")
+
+    with StdioTuple((empty_string, empty_string, empty_string)):
         pass
 
-    with _MultiCloseContextManager(("", "", "")):
-        pass
+    #with _MultiCloseContextManager(("", "", "")):
+    #    pass
 
-    with pytest.raises(AssertionError) as err:
-        TextIOTuple(("", "", ""))
+    with pytest.raises(ValueError) as err:
+        TextIOTuple((empty_string, empty_string, empty_string))
 
     assert str(err.value) == "iterable must contain only TextIOBase"
 

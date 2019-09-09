@@ -59,13 +59,44 @@ except ImportError:  # pragma: no cover
             return NotImplemented
 
 
+class MultiItemTuple():  # _collections_abc.Iterable
+    """Iterable with methods that operate on all items."""
+
+    def _map_method(self, method: str):
+        """Perform method on all items."""
+        for item in self:
+            yield item.__dict__[method](item)
+
+    def _map(self, op):
+        """Return generator for performing op on all items."""
+        if isinstance(op, str):
+            return self._map_method(op)
+
+        return map(op, self)
+
+    def suppress_map(self, ex, op):
+        """Return generator for performing op on all item, suppressing ex."""
+        for item in self:
+            with suppress(ex):
+                op_inner = item.__dict__[op] if isinstance(op, str) else op
+                yield op_inner(item)
+
+    def _all(self, op):
+        """Perform op on all items, returning True when all were successful."""
+        return all(self._map(op))
+
+    def suppress_all(self, ex, op):
+        """Perform op on all items, suppressing ex."""
+        return all(self.suppress_map(ex, op))
+
+
 class TupleContextManager(tuple, AbstractContextManager):
     """Base for context managers that are also a tuple."""
 
     # This is needed to establish a workable MRO.
 
 
-class StdioTuple(TupleContextManager):
+class StdioTuple(MultiItemTuple, TupleContextManager):
     """Tuple context manager of stdin, stdout and stderr stream-like objects."""
 
     def __new__(cls, iterable):
@@ -90,33 +121,6 @@ class StdioTuple(TupleContextManager):
         """Return capturing stderr stream."""
         return self[2]
 
-    def _map_method(self, method: str):
-        """Perform method on all streams."""
-        for item in self:
-            yield item.__dict__[method](item)
-
-    def _map(self, op):
-        """Return generator for performing op on all streams."""
-        if isinstance(op, str):
-            return self._map_method(op)
-
-        return map(op, self)
-
-    def suppress_map(self, ex, op):
-        """Return generator for performing op on all streams, suppressing ex."""
-        for item in self:
-            with suppress(ex):
-                op_inner = item.__dict__[op] if isinstance(op, str) else op
-                yield op_inner(item)
-
-    def _all(self, op):
-        """Perform op on all streams, returning True when all were successful."""
-        return all(self._map(op))
-
-    def suppress_all(self, ex, op):
-        """Perform op on all streams, suppressing ex."""
-        return all(self.suppress_map(ex, op))
-
     def close(self):
         """Close all streams."""
         return self._all("close")
@@ -125,15 +129,17 @@ class StdioTuple(TupleContextManager):
 class TextIOTuple(StdioTuple):
     """Tuple context manager of stdin, stdout and stderr TextIOBase objects."""
 
+    _ITEM_BASE = TextIOBase
+
     # pytest and colorama inject objects into sys.std* that are not real TextIOBase
     # and fail the assertion of this class
 
     def __new__(cls, iterable):
         """Instantiate new tuple from iterable containing three TextIOBase streams."""
         self = super(StdioTuple, cls).__new__(cls, iterable)
-        assert self._all(  # noqa: S101
-            lambda item: isinstance(item, TextIOBase)
-        ), "iterable must contain only TextIOBase"
+        if not self._all(lambda item: isinstance(item, cls._ITEM_BASE)):
+            raise ValueError(
+                "iterable must contain only {}".format(cls._ITEM_BASE.__name__))
         return self
 
 
