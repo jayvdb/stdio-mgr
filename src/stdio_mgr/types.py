@@ -30,14 +30,25 @@ import sys
 from contextlib import ExitStack, suppress
 from io import TextIOBase
 
-import _collections_abc
-
 # AbstractContextManager was introduced in Python 3.6
 # and may be used with typing.ContextManager.
 try:
     from contextlib import AbstractContextManager
 except ImportError:  # pragma: no cover
+    # Copied from _collections_abc
+    def _check_methods(C, *methods):
+        mro = C.__mro__
+        for method in methods:
+            for B in mro:
+                if method in B.__dict__:
+                    if B.__dict__[method] is None:
+                        return NotImplemented
+                    break
+            else:
+                return NotImplemented
+        return True
 
+    # Copied from contextlib
     class AbstractContextManager(abc.ABC):
         """An abstract base class for context managers."""
 
@@ -54,9 +65,7 @@ except ImportError:  # pragma: no cover
         def __subclasshook__(cls, subclass):
             """Check whether subclass is considered a subclass of this ABC."""
             if cls is AbstractContextManager:
-                return _collections_abc._check_methods(
-                    subclass, "__enter__", "__exit__"
-                )
+                return _check_methods(subclass, "__enter__", "__exit__")
             return NotImplemented
 
 
