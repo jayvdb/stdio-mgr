@@ -34,16 +34,13 @@ import warnings
 import pytest
 
 from stdio_mgr import stdio_mgr, StdioManager
-from stdio_mgr.stdio_mgr import _IMPORT_SYS_STREAMS, _RUNTIME_SYS_STREAMS, _Tee
 from stdio_mgr.types import (
     _MultiCloseContextManager,
     ABC,
     AbstractContextManager,
-    FakeIOTuple,
     MultiItemTuple,
     ReplaceSysIoContextManager,
     StdioTupleBase,
-    TextIOTuple,
     TupleContextManager,
 )
 

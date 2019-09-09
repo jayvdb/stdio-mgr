@@ -26,7 +26,7 @@ interaction with ``stdin``/``stdout``/``stderr`` as a tuple.
 """
 import collections.abc
 import sys
-from abc import ABC
+from abc import ABC, abstractmethod
 from contextlib import ExitStack, suppress
 from io import TextIOBase
 
@@ -44,7 +44,7 @@ except ImportError:  # pragma: no cover
             """Return `self` upon entering the runtime context."""
             return self
 
-        @abc.abstractmethod
+        @abstractmethod
         def __exit__(self, exc_type, exc_value, traceback):
             """Raise any exception triggered within the runtime context."""
             return None
@@ -147,8 +147,10 @@ class FakeIOTuple(StdioTupleBase):
 
 
 class AnyIOTuple(StdioTupleBase):
+    """Tuple context manager which will create FakeIOTuple or TextIOTuple."""
+
     def __new__(cls, iterable):
-        """Instantiate new TextIOTuple or StdioTuple from iterable."""
+        """Instantiate new TextIOTuple or FakeIOTuple from iterable."""
         items = list(iterable)
         if any(not isinstance(item, TextIOTuple._ITEM_BASE) for item in items):
             return FakeIOTuple(items)
