@@ -37,14 +37,19 @@ from io import (
     TextIOBase,
     TextIOWrapper,
 )
+import os
 from tempfile import TemporaryFile
+import sys
 
-from stdio_mgr.io import is_stdio_unbufferedio
 from stdio_mgr.types import (
     _OutStreamsCloseContextManager,
     InjectSysIoContextManager,
+    ReplaceSysIoContextManager,
     StdioTuple,
 )
+
+_CANONICAL_SYS_STREAMS = StdioTuple([sys.__stdin__, sys.__stdout__, sys.__stderr__])
+_INITIAL_SYS_STREAMS = StdioTuple([sys.stdin, sys.stdout, sys.stderr])
 
 
 class _PersistedBytesIO(BytesIO):
@@ -375,8 +380,8 @@ class StdioManagerBase(StdioTuple):
 
     def __new__(cls, in_str="", close=True):
         """Instantiate new context manager that emulates namedtuple."""
-        if close or _unbufferedio:
-            if _unbufferedio:
+        if close or not cls._RAW:
+            if not cls._RAW:
                 out_cls = SafeCloseRandomFileIO
             else:
                 out_cls = SafeCloseRandomTextIO
@@ -397,33 +402,73 @@ class StdioManagerBase(StdioTuple):
         return self
 
 
-_unbufferedio = is_stdio_unbufferedio()
+class BufferReplaceStdioManager(ReplaceSysIoContextManager, StdioManagerBase):  # noqa: D101
+
+    _RAW = True
+
+    def close(self):
+        """Close files only if requested."""
+        if self._close:
+            return super().close()
 
 
-if _unbufferedio:
+class FileInjectStdioManager(InjectSysIoContextManager, StdioManagerBase):  # noqa: D101
 
-    class StdioManager(InjectSysIoContextManager, StdioManagerBase):  # noqa: D101
+    _RAW = False
 
-        _RAW = False
+    def close(self):
+        """Dont close any streams."""
 
-        def close(self):
-            """Dont close any streams."""
-
-        def __del__(self):
-            """Delete temporary files."""
-            del self.stdout._stream._f
-            del self.stderr._stream._f
+    def __del__(self):
+        """Delete temporary files."""
+        del self.stdout._stream._f
+        del self.stderr._stream._f
 
 
-else:
+class BufferInjectStdioManager(  # noqa: D101
+    InjectSysIoContextManager, _OutStreamsCloseContextManager, StdioManagerBase
+):
 
-    class StdioManager(  # noqa: D101
-        InjectSysIoContextManager, _OutStreamsCloseContextManager, StdioManagerBase
-    ):
-        def close(self):
-            """Close files only if requested."""
-            if self._close:
-                return super().close()
+    def close(self):
+        """Close files only if requested."""
+        if self._close:
+            return super().close()
+
+
+def _current_streams():
+    return StdioTuple([sys.stdin, sys.stdout, sys.stderr])
+
+
+def _choose_inject_impl(currentio=None):
+    if not currentio:
+        currentio = _current_streams()
+
+    if os.environ.get("PYTHONUNBUFFERED"):
+        return FileInjectStdioManager
+
+    try:
+        currentio.stdout.buffer.raw
+    except AttributeError:
+        pass
+    else:
+        return BufferInjectStdioManager
+
+    return FileInjectStdioManager
+
+
+def _choose_impl(currentio=None):
+    if not currentio:
+        currentio = _current_streams()
+
+    try:
+        currentio.stdin.buffer
+    except AttributeError:
+        return BufferReplaceStdioManager
+
+    return _choose_inject_impl(currentio)
+
+
+StdioManager = _choose_impl(_INITIAL_SYS_STREAMS)
 
 
 stdio_mgr = StdioManager
