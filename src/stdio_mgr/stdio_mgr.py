@@ -42,6 +42,7 @@ from tempfile import TemporaryFile
 import sys
 
 from stdio_mgr.types import (
+    _MultiCloseContextManager,
     _OutStreamsCloseContextManager,
     InjectSysIoContextManager,
     ReplaceSysIoContextManager,
@@ -402,7 +403,7 @@ class StdioManagerBase(StdioTuple):
         return self
 
 
-class BufferReplaceStdioManager(ReplaceSysIoContextManager, StdioManagerBase):  # noqa: D101
+class BufferReplaceStdioManager(ReplaceSysIoContextManager, StdioManagerBase, _MultiCloseContextManager):  # noqa: D101
 
     _RAW = True
 

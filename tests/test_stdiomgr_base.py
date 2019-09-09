@@ -44,7 +44,8 @@ from stdio_mgr.types import _MultiCloseContextManager, StdioTuple, TextIOTuple
 
 _WARNING_ARGS_ERROR = "Please use pytest -p no:warnings or pytest --W error::Warning"
 _BUFFER_DETACHED_MSG = "underlying buffer has been detached"
-
+_WRITE_TO_CLOSED_FILE = {"I/O operation on closed file."}
+# "write to closed file" occurs sometimes
 
 def test_context_manager_instantiation(stdio_mgr):
     """Confirm stdio_mgr instance is a tuple and registered context manager."""
@@ -507,6 +508,11 @@ def test_stdout_detached(stdio_mgr, convert_newlines):
 
         assert convert_newlines("test str\n") == o.getvalue()
 
+        with pytest.raises(ValueError) as err:
+            print("anything")
+
+        assert str(err.value) == _BUFFER_DETACHED_MSG
+
         f.write(convert_newlines("second test str\n").encode("utf8"))
         f.flush()
 
@@ -558,7 +564,7 @@ def test_stdout_access_buffer_after_close(stdio_mgr, convert_newlines):
             with pytest.raises(ValueError) as err:
                 print("anything")
 
-            assert str(err.value) == "write to closed file"
+            assert str(err.value) in _WRITE_TO_CLOSED_FILE
 
         assert convert_newlines("test str\nsecond test str\n") == o.getvalue()
 
