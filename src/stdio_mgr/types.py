@@ -32,7 +32,6 @@ from io import TextIOBase
 
 import _collections_abc
 
-
 # AbstractContextManager was introduced in Python 3.6
 # and may be used with typing.ContextManager.
 try:
