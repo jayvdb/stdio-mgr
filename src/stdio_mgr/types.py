@@ -24,6 +24,7 @@ interaction with ``stdin``/``stdout``/``stderr`` as a tuple.
 **Members**
 
 """
+import _collections_abc
 import collections.abc
 import sys
 from abc import ABC, abstractmethod
@@ -53,7 +54,8 @@ except ImportError:  # pragma: no cover
         def __subclasshook__(cls, subclass):
             """Check whether subclass is considered a subclass of this ABC."""
             if cls is AbstractContextManager:
-                return collections.abc._check_methods(subclass, "__enter__", "__exit__")
+                return _collections_abc._check_methods(
+                    subclass, "__enter__", "__exit__")
             return NotImplemented
 
 
