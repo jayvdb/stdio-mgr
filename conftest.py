@@ -27,14 +27,14 @@ interactions.
 """
 
 import os
-from io import TextIOBase
 import sys
 import warnings
+from io import TextIOBase
 
 import _pytest.warnings
 import pytest
 
-from stdio_mgr.stdio_mgr import BufferReplaceStdioManager, _choose_inject_impl
+from stdio_mgr.stdio_mgr import _choose_inject_impl, BufferReplaceStdioManager
 
 
 @pytest.fixture(scope="session")
@@ -75,6 +75,7 @@ def enable_warnings_plugin(request):
 
 
 def pytest_generate_tests(metafunc):
+    """Parametrize fixture stdio_mgr."""
     if "stdio_mgr" not in metafunc.fixturenames:
         return
 

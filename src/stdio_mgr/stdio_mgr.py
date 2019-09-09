@@ -26,6 +26,7 @@ interactions.
 
 """
 
+import sys
 from contextlib import suppress
 from io import (
     BufferedRandom,
@@ -37,9 +38,8 @@ from io import (
     TextIOBase,
     TextIOWrapper,
 )
-import os
+from os import environ
 from tempfile import TemporaryFile
-import sys
 
 from stdio_mgr.types import (
     _MultiCloseContextManager,
@@ -49,8 +49,8 @@ from stdio_mgr.types import (
     StdioTuple,
 )
 
-_CANONICAL_SYS_STREAMS = StdioTuple([sys.__stdin__, sys.__stdout__, sys.__stderr__])
-_INITIAL_SYS_STREAMS = StdioTuple([sys.stdin, sys.stdout, sys.stderr])
+_RUNTIME_SYS_STREAMS = StdioTuple([sys.__stdin__, sys.__stdout__, sys.__stderr__])
+_IMPORT_SYS_STREAMS = StdioTuple([sys.stdin, sys.stdout, sys.stderr])
 
 
 class _PersistedBytesIO(BytesIO):
@@ -403,7 +403,9 @@ class StdioManagerBase(StdioTuple):
         return self
 
 
-class BufferReplaceStdioManager(ReplaceSysIoContextManager, StdioManagerBase, _MultiCloseContextManager):  # noqa: D101
+class BufferReplaceStdioManager(  # noqa: D101
+    ReplaceSysIoContextManager, StdioManagerBase, _MultiCloseContextManager
+):
 
     _RAW = True
 
@@ -429,7 +431,6 @@ class FileInjectStdioManager(InjectSysIoContextManager, StdioManagerBase):  # no
 class BufferInjectStdioManager(  # noqa: D101
     InjectSysIoContextManager, _OutStreamsCloseContextManager, StdioManagerBase
 ):
-
     def close(self):
         """Close files only if requested."""
         if self._close:
@@ -444,7 +445,7 @@ def _choose_inject_impl(currentio=None):
     if not currentio:
         currentio = _current_streams()
 
-    if os.environ.get("PYTHONUNBUFFERED"):
+    if environ.get("PYTHONUNBUFFERED"):
         return FileInjectStdioManager
 
     try:
@@ -469,7 +470,7 @@ def _choose_impl(currentio=None):
     return _choose_inject_impl(currentio)
 
 
-StdioManager = _choose_impl(_INITIAL_SYS_STREAMS)
+StdioManager = _choose_impl(_IMPORT_SYS_STREAMS)
 
 
 stdio_mgr = StdioManager
