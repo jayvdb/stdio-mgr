@@ -24,12 +24,13 @@ interaction with ``stdin``/``stdout``/``stderr`` as a tuple.
 **Members**
 
 """
-import _collections_abc
 import collections.abc
 import sys
 from abc import ABC, abstractmethod
 from contextlib import ExitStack, suppress
 from io import TextIOBase
+
+import _collections_abc
 
 
 # AbstractContextManager was introduced in Python 3.6
@@ -55,7 +56,8 @@ except ImportError:  # pragma: no cover
             """Check whether subclass is considered a subclass of this ABC."""
             if cls is AbstractContextManager:
                 return _collections_abc._check_methods(
-                    subclass, "__enter__", "__exit__")
+                    subclass, "__enter__", "__exit__"
+                )
             return NotImplemented
 
 
